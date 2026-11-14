@@ -22,9 +22,9 @@ Why this beats the house baseline (persistence, fixed sigma 0.0025):
     next 4 hours (mean reversion), but pulling the median toward the
     trailing mean did not help on practice — persistence wins.
 
-Practice loss (6 cases, scored against the next case's grid and the
-fetched Polymarket history for p05): 0.288814 vs the house baseline's
-0.363589 (reproduced exactly) — 20.6% better, improving every case.
+Practice loss (5 cases p00-p04, each scored against the next case's
+grid): 0.322699 vs the house baseline's 0.392518 — 17.8% better,
+improving every case.
 
 Stdlib only, no network, deterministic (no randomness, no clock).
 Reads $MAKEFUN_INPUT_DIR (else /input), writes $MAKEFUN_OUTPUT_DIR
@@ -56,7 +56,12 @@ def price6(x):
 def forecast_market(prices, horizon):
     if not prices:
         raise ValueError("market has no prices")
-    x = prices[-1]
+    # Ignore any non-finite price (NaN/inf) instead of letting it poison
+    # the forecast: the checkpoint price is the last finite one.
+    finite = [p for p in prices if math.isfinite(p)]
+    if not finite:
+        raise ValueError("market has no finite prices")
+    x = finite[-1]
     # A market pinned at exactly 0 or 1 can still move (a trade can
     # appear), so keep a minimal spread instead of letting sigma fall
     # to zero: floor x(1-x) at 0.001.
